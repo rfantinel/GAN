@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
+from keras.layers import BatchNormalization, Activation, ZeroPadding2D, Convolution2D, MaxPooling2D, Deconvolution2D, UpSampling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
@@ -77,22 +77,32 @@ class GAN():
 
     def build_discriminator(self):
 
+        # img = 28x28x1
         img_shape = (self.img_rows, self.img_cols, self.channels)
+        
+        input_layer = Input(shape=img_shape)
 
-        model = Sequential()
+        M = Convolution2D(filters=32, kernel_size=(3,3), strides=(1,1))(input_layer) #32@26x26x1
+        M = MaxPooling2D(pool_size=(2,2))(M) #32@13x13x1
+        
+        M = Convolution2D(filters=64, kernel_size=(3,3), strides=(1,1))(M) #64@11x11x1
+        M = MaxPooling2D(pool_size=(2,2))(M) #64@5x5x1
 
-        model.add(Flatten(input_shape=img_shape))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(256))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(1, activation='sigmoid'))
-        model.summary()
+        M = Convolution2D(filters=128, kernel_size=(3,3), strides=(1,1))(M) #128@3x3x1
 
-        img = Input(shape=img_shape)
-        validity = model(img)
+        M = Flatten() (M)
+        M = Dense(512, init='normal')(M)
+        M = LeakyReLU(alpha=0.2) (M)
+        M = Dense(256, init='normal')(M)
+        M = LeakyReLU(alpha=0.2) (M)
 
-        return Model(img, validity)
+        output_layer = Dense(1, init='normal', activation='sigmoid')(M)
+
+        model = Model(input_layer, output_layer)
+
+        print(model.summary())
+
+        return model
 
     def train(self, epochs, batch_size=128, save_interval=50):
 
