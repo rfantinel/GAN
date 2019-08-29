@@ -4,7 +4,6 @@ from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D, Convolution2D, MaxPooling2D, Deconvolution2D, UpSampling2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 
@@ -54,26 +53,29 @@ class GAN():
 
         noise_shape = (100,)
 
-        model = Sequential()
+        input_layer = Input(shape=noise_shape)
 
-        model.add(Dense(256, input_shape=noise_shape))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(1024))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.img_shape), activation='tanh'))
-        model.add(Reshape(self.img_shape))
+        M = Reshape((10, 10, 1))(input_layer)
+        M = Deconvolution2D(filters=64, kernel_size=(3, 3))(M) #64@12x12
+        M = UpSampling2D(size=(2,2))(M) #64@24x24
+        M = LeakyReLU(alpha=0.2)(M)
+        M = BatchNormalization(momentum=0.8)(M)
+        M = Convolution2D(filters=32, kernel_size=(3, 3))(M) #32@22x22
+        M = Deconvolution2D(filters=16, kernel_size=(3, 3))(M) #16@24x24
+        M = Deconvolution2D(filters=8, kernel_size=(3, 3))(M) #8@26x26
+        M = LeakyReLU(alpha=0.2)(M)
+        M = BatchNormalization(momentum=0.8)(M)
+        M = Convolution2D(filters=4, kernel_size=(3, 3))(M) #4@24x24
+        M = Deconvolution2D(filters=2, kernel_size=(3, 3))(M) #2@26x26
+        
+        output_layer = Deconvolution2D(filters=1, kernel_size=(3, 3), activation='tanh')(M) #1@28x28
+        
+        model = Model(input_layer, output_layer)
 
-        model.summary()
+        print(model.summary())
 
-        noise = Input(shape=noise_shape)
-        img = model(noise)
+        return model
 
-        return Model(noise, img)
 
     def build_discriminator(self):
 
@@ -82,13 +84,13 @@ class GAN():
         
         input_layer = Input(shape=img_shape)
 
-        M = Convolution2D(filters=32, kernel_size=(3,3), strides=(1,1))(input_layer) #32@26x26x1
-        M = MaxPooling2D(pool_size=(2,2))(M) #32@13x13x1
+        M = Convolution2D(filters=32, kernel_size=(3,3), strides=(1,1))(input_layer) #32@26x26
+        M = MaxPooling2D(pool_size=(2,2))(M) #32@13x13
         
-        M = Convolution2D(filters=64, kernel_size=(3,3), strides=(1,1))(M) #64@11x11x1
-        M = MaxPooling2D(pool_size=(2,2))(M) #64@5x5x1
+        M = Convolution2D(filters=64, kernel_size=(3,3), strides=(1,1))(M) #64@11x11
+        M = MaxPooling2D(pool_size=(2,2))(M) #64@5x5
 
-        M = Convolution2D(filters=128, kernel_size=(3,3), strides=(1,1))(M) #128@3x3x1
+        M = Convolution2D(filters=128, kernel_size=(3,3), strides=(1,1))(M) #128@3x3
 
         M = Flatten() (M)
         M = Dense(512, init='normal')(M)
@@ -177,4 +179,4 @@ class GAN():
 
 if __name__ == '__main__':
     gan = GAN()
-    gan.train(epochs=30000, batch_size=32, save_interval=200)
+    gan.train(epochs=30000, batch_size=128, save_interval=200)
