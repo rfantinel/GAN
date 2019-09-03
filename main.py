@@ -2,7 +2,7 @@ from __future__ import print_function, division
 
 from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
+from keras.layers import BatchNormalization, Activation, ZeroPadding2D, Convolution2D, MaxPooling2D, Deconvolution2D, UpSampling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
@@ -56,15 +56,17 @@ class GAN():
 
         input_layer = Input(shape=noise_shape)
 
-        M = Dense(256)(input_layer)
+        M = Reshape((10, 10, 1))(input_layer)
+        M = Convolution2D(filters=32, kernel_size=(3, 3))(M) #32@8x8
+        M = Convolution2D(filters=16, kernel_size=(3, 3))(M) #16@6x6
+        M = UpSampling2D(size=(3,3))(M) #16@18x18
         M = LeakyReLU(alpha=0.2)(M)
-        M = BatchNormalization(momentum=0.8)(M)
-        M = Dense(512)(M)
-        M = LeakyReLU(alpha=0.2)(M)
-        M = BatchNormalization(momentum=0.8)(M)
-        M = Dense(1024)(M)
-        M = LeakyReLU(alpha=0.2)(M)
-        M = BatchNormalization(momentum=0.8)(M)
+        M = Convolution2D(filters=8, kernel_size=(3, 3))(M) #8@16x16
+        M = Convolution2D(filters=4, kernel_size=(3, 3))(M) #8@14x14
+        M = UpSampling2D(size=(2,2))(M) #4@28x28
+        M = Flatten() (M)
+        M = Dense(1568, init='normal')(M)
+        M = LeakyReLU(alpha=0.2) (M)
         M = Dense(np.prod(self.img_shape), activation='tanh')(M)
         
         output_layer = Reshape(self.img_shape)(M)
