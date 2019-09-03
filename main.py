@@ -54,45 +54,48 @@ class GAN():
 
         noise_shape = (100,)
 
-        model = Sequential()
+        input_layer = Input(shape=noise_shape)
 
-        model.add(Dense(256, input_shape=noise_shape))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(1024))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.img_shape), activation='tanh'))
-        model.add(Reshape(self.img_shape))
+        M = Dense(256)(input_layer)
+        M = LeakyReLU(alpha=0.2)(M)
+        M = BatchNormalization(momentum=0.8)(M)
+        M = Dense(512)(M)
+        M = LeakyReLU(alpha=0.2)(M)
+        M = BatchNormalization(momentum=0.8)(M)
+        M = Dense(1024)(M)
+        M = LeakyReLU(alpha=0.2)(M)
+        M = BatchNormalization(momentum=0.8)(M)
+        M = Dense(np.prod(self.img_shape), activation='tanh')(M)
+        
+        output_layer = Reshape(self.img_shape)(M)
+        
+        model = Model(input_layer, output_layer)
 
-        model.summary()
+        print(model.summary())
 
-        noise = Input(shape=noise_shape)
-        img = model(noise)
+        return model
 
-        return Model(noise, img)
 
     def build_discriminator(self):
 
         img_shape = (self.img_rows, self.img_cols, self.channels)
 
-        model = Sequential()
+        input_layer = Input(shape=img_shape)
 
-        model.add(Flatten(input_shape=img_shape))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(256))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(1, activation='sigmoid'))
-        model.summary()
+        M = Flatten()(input_layer)
+        M = Dense(512)(M)
+        M = LeakyReLU(alpha=0.2)(M)
+        M = Dense(256)(M)
+        M = LeakyReLU(alpha=0.2)(M)
+        
+        output_layer = Dense(1, activation='sigmoid')(M)
 
-        img = Input(shape=img_shape)
-        validity = model(img)
+        model = Model(input_layer, output_layer)
 
-        return Model(img, validity)
+        print(model.summary())
+
+        return model
+
 
     def train(self, epochs, batch_size=128, save_interval=50):
 
