@@ -84,7 +84,10 @@ class GAN():
 
         input_layer = Input(shape=img_shape)
 
-        M = Flatten()(input_layer)
+        M = Convolution2D(filters=2, kernel_size=(3, 3))(input_layer) #4@26x26
+        M = Convolution2D(filters=4, kernel_size=(3, 3))(M) #8@24x24
+        M = LeakyReLU(alpha=0.2)(M)
+        M = Flatten()(M)
         M = Dense(512)(M)
         M = LeakyReLU(alpha=0.2)(M)
         M = Dense(256)(M)
